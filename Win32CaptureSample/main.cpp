@@ -45,16 +45,14 @@ int __stdcall WinMain(HINSTANCE, HINSTANCE, PSTR, int)
 
     // Create the pickers
     auto capturePicker = winrt::GraphicsCapturePicker();
-    auto savePicker = winrt::FileSavePicker();
 
     // Create the app
-    auto app = std::make_shared<App>(root, capturePicker, savePicker);
+    auto app = std::make_shared<App>(root, capturePicker);
 
     auto window = SampleWindow(800, 600, app);
 
     // Provide the window handle to the pickers (explicit HWND initialization)
     window.InitializeObjectWithWindowHandle(capturePicker);
-    window.InitializeObjectWithWindowHandle(savePicker);
 
     // Hookup the visual tree to the window
     auto target = window.CreateWindowTarget(compositor);

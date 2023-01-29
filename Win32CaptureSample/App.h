@@ -5,14 +5,12 @@ class App
 {
 public:
     App(winrt::Windows::UI::Composition::ContainerVisual root,
-        winrt::Windows::Graphics::Capture::GraphicsCapturePicker capturePicker,
-        winrt::Windows::Storage::Pickers::FileSavePicker savePicker);
+        winrt::Windows::Graphics::Capture::GraphicsCapturePicker capturePicker);
     ~App() {}
 
     winrt::Windows::Graphics::Capture::GraphicsCaptureItem TryStartCaptureFromWindowHandle(HWND hwnd);
     winrt::Windows::Graphics::Capture::GraphicsCaptureItem TryStartCaptureFromMonitorHandle(HMONITOR hmon);
     winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Graphics::Capture::GraphicsCaptureItem> StartCaptureWithPickerAsync();
-    winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Storage::StorageFile> TakeSnapshotAsync();
     winrt::Windows::Graphics::DirectX::DirectXPixelFormat PixelFormat() { return m_pixelFormat; }
     void PixelFormat(winrt::Windows::Graphics::DirectX::DirectXPixelFormat pixelFormat);
 
@@ -34,7 +32,6 @@ private:
     winrt::Windows::UI::Composition::CompositionSurfaceBrush m_brush{ nullptr };
 
     winrt::Windows::Graphics::Capture::GraphicsCapturePicker m_capturePicker{ nullptr };
-    winrt::Windows::Storage::Pickers::FileSavePicker m_savePicker{ nullptr };
 
     winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice m_device{ nullptr };
     std::unique_ptr<SimpleCapture> m_capture{ nullptr };

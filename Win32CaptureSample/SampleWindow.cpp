@@ -1,3 +1,4 @@
+
 #include "pch.h"
 #include "App.h"
 #include "SampleWindow.h"
@@ -60,8 +61,6 @@ SampleWindow::SampleWindow(int width, int height, std::shared_ptr<App> app)
     auto isAllDisplaysPresent = winrt::ApiInformation::IsApiContractPresent(L"Windows.Foundation.UniversalApiContract", 9);
 
     m_app = app;
-    m_windows = std::make_unique<WindowList>();
-    m_monitors = std::make_unique<MonitorList>(isAllDisplaysPresent);
     m_pixelFormats = 
     {
         { L"B8G8R8A8UIntNormalized", winrt::DirectXPixelFormat::B8G8R8A8UIntNormalized },
@@ -76,42 +75,22 @@ SampleWindow::SampleWindow(int width, int height, std::shared_ptr<App> app)
 
 SampleWindow::~SampleWindow()
 {
-    m_windows.reset();
+    //m_windows.reset();
 }
 
 LRESULT SampleWindow::MessageHandler(UINT const message, WPARAM const wparam, LPARAM const lparam)
 {
-    switch (message)
-    {
+    switch (message) {
     case WM_COMMAND:
     {
         auto command = HIWORD(wparam);
         auto hwnd = (HWND)lparam;
-        switch (command)
-        {
+        switch (command) {
         case CBN_SELCHANGE:
             {
                 auto index = SendMessageW(hwnd, CB_GETCURSEL, 0, 0);
-                if (hwnd == m_windowComboBox)
-                {
-                    auto window = m_windows->GetCurrentWindows()[index];
-                    auto item = m_app->TryStartCaptureFromWindowHandle(window.WindowHandle);
-                    if (item != nullptr)
-                    {
-                        OnCaptureStarted(item, CaptureType::ProgrammaticWindow);
-                    }
-                }
-                else if (hwnd == m_monitorComboBox)
-                {
-                    auto monitor = m_monitors->GetCurrentMonitors()[index];
-                    auto item = m_app->TryStartCaptureFromMonitorHandle(monitor.MonitorHandle);
-                    if (item != nullptr)
-                    {
-                        OnCaptureStarted(item, CaptureType::ProgrammaticMonitor);
-                    }
-                }
-                else if (hwnd == m_pixelFormatComboBox)
-                {
+                
+                if (hwnd == m_pixelFormatComboBox) {
                     auto pixelFormatData = m_pixelFormats[index];
                     m_app->PixelFormat(pixelFormatData.PixelFormat);
                 }
@@ -119,30 +98,17 @@ LRESULT SampleWindow::MessageHandler(UINT const message, WPARAM const wparam, LP
             break;
         case BN_CLICKED:
             {
-                if (hwnd == m_pickerButton)
-                {
+                if (hwnd == m_pickerButton) {
                     OnPickerButtonClicked();
-                }
-                else if (hwnd == m_stopButton)
-                {
+                } else if (hwnd == m_stopButton) {
                     StopCapture();
-                }
-                else if (hwnd == m_snapshotButton)
-                {
-                    OnSnapshotButtonClicked();
-                }
-                else if (hwnd == m_cursorCheckBox)
-                {
+                } else if (hwnd == m_cursorCheckBox) {
                     auto value = SendMessageW(m_cursorCheckBox, BM_GETCHECK, 0, 0) == BST_CHECKED;
                     m_app->IsCursorEnabled(value);
-                }
-                else if (hwnd == m_captureExcludeCheckBox)
-                {
+                } else if (hwnd == m_captureExcludeCheckBox) {
                     auto value = SendMessageW(m_captureExcludeCheckBox, BM_GETCHECK, 0, 0) == BST_CHECKED;
                     winrt::check_bool(SetWindowDisplayAffinity(m_window, value ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE));
-                }
-                else if (hwnd == m_borderRequiredCheckBoxHwnd)
-                {
+                } else if (hwnd == m_borderRequiredCheckBoxHwnd) {
                     auto value = SendMessageW(m_borderRequiredCheckBoxHwnd, BM_GETCHECK, 0, 0) == BST_CHECKED;
                     m_app->IsBorderRequired(value);
                 }
@@ -151,9 +117,6 @@ LRESULT SampleWindow::MessageHandler(UINT const message, WPARAM const wparam, LP
         }
     }
     break;
-    case WM_DISPLAYCHANGE:
-        m_monitors->Update();
-        break;
     case WM_CTLCOLORSTATIC:
         return util::StaticControlColorMessageHandler(wparam, lparam);
     default:
@@ -168,23 +131,10 @@ void SampleWindow::OnCaptureStarted(winrt::GraphicsCaptureItem const& item, Capt
     m_itemClosedRevoker.revoke();
     m_itemClosedRevoker = item.Closed(winrt::auto_revoke, { this, &SampleWindow::OnCaptureItemClosed });
     SetSubTitle(std::wstring(item.DisplayName()));
-    switch (captureType)
-    {
-    case CaptureType::ProgrammaticWindow:
-        SendMessageW(m_monitorComboBox, CB_SETCURSEL, -1, 0);
-        break;
-    case CaptureType::ProgrammaticMonitor:
-        SendMessageW(m_windowComboBox, CB_SETCURSEL, -1, 0);
-        break;
-    case CaptureType::Picker:
-        SendMessageW(m_windowComboBox, CB_SETCURSEL, -1, 0);
-        SendMessageW(m_monitorComboBox, CB_SETCURSEL, -1, 0);
-        break;
-    }
+
     SendMessageW(m_cursorCheckBox, BM_SETCHECK, BST_CHECKED, 0);
     SendMessageW(m_borderRequiredCheckBoxHwnd, BM_SETCHECK, BST_CHECKED, 0);
     EnableWindow(m_stopButton, true);
-    EnableWindow(m_snapshotButton, true);
 }
 
 winrt::fire_and_forget SampleWindow::OnPickerButtonClicked()
@@ -197,14 +147,6 @@ winrt::fire_and_forget SampleWindow::OnPickerButtonClicked()
     }
 }
 
-winrt::fire_and_forget SampleWindow::OnSnapshotButtonClicked()
-{
-    auto file = co_await m_app->TakeSnapshotAsync();
-    if (file != nullptr)
-    {
-        co_await winrt::Launcher::LaunchFileAsync(file);
-    }
-}
 
 // Not DPI aware but could be by multiplying the constants based on the monitor scale factor
 void SampleWindow::CreateControls(HINSTANCE instance)
@@ -226,30 +168,11 @@ void SampleWindow::CreateControls(HINSTANCE instance)
 
     auto controls = util::StackPanel(m_window, instance, 10, 10, 40, 200, 30);
 
-    auto windowLabel = controls.CreateControl(util::ControlType::Label, L"Windows:");
-
-    // Create window combo box
-    auto windowComboBox = controls.CreateControl(util::ControlType::ComboBox, L"", win32ProgrammaticStyle);
-
-    // Populate window combo box and register for updates
-    m_windows->RegisterComboBoxForUpdates(windowComboBox);
-
-    auto monitorLabel = controls.CreateControl(util::ControlType::Label, L"Displays:");
-
-    // Create monitor combo box
-    auto monitorComboBox = controls.CreateControl(util::ControlType::ComboBox, L"", win32ProgrammaticStyle);
-
-    // Populate monitor combo box
-    m_monitors->RegisterComboBoxForUpdates(monitorComboBox);
-
     // Create picker button
     auto pickerButton = controls.CreateControl(util::ControlType::Button, L"Open Picker");
 
     // Create stop capture button
     auto stopButton = controls.CreateControl(util::ControlType::Button, L"Stop Capture", WS_DISABLED);
-
-    // Create independent snapshot button
-    auto snapshotButton = controls.CreateControl(util::ControlType::Button, L"Take Snapshot", WS_DISABLED);
 
     auto pixelFormatLabel = controls.CreateControl(util::ControlType::Label, L"Pixel Format:");
 
@@ -286,12 +209,9 @@ void SampleWindow::CreateControls(HINSTANCE instance)
 
     // The default state is false for border required checkbox
     SendMessageW(borderRequiredCheckBoxHwnd, BM_SETCHECK, BST_CHECKED, 0);
-
-    m_windowComboBox = windowComboBox;
-    m_monitorComboBox = monitorComboBox;
+	
     m_pickerButton = pickerButton;
     m_stopButton = stopButton;
-    m_snapshotButton = snapshotButton;
     m_cursorCheckBox = cursorCheckBox;
     m_captureExcludeCheckBox = captureExcludeCheckBox;
     m_pixelFormatComboBox = pixelFormatComboBox;
@@ -312,12 +232,9 @@ void SampleWindow::StopCapture()
 {
     m_app->StopCapture();
     SetSubTitle(L"");
-    SendMessageW(m_windowComboBox, CB_SETCURSEL, -1, 0);
-    SendMessageW(m_monitorComboBox, CB_SETCURSEL, -1, 0);
     SendMessageW(m_cursorCheckBox, BM_SETCHECK, BST_CHECKED, 0);
     SendMessageW(m_borderRequiredCheckBoxHwnd, BM_SETCHECK, BST_CHECKED, 0);
     EnableWindow(m_stopButton, false);
-    EnableWindow(m_snapshotButton, false);
 }
 
 void SampleWindow::OnCaptureItemClosed(winrt::GraphicsCaptureItem const&, winrt::Windows::Foundation::IInspectable const&)

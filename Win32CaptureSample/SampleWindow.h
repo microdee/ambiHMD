@@ -2,8 +2,6 @@
 #include <robmikh.common/DesktopWindow.h>
 
 class App;
-class WindowList;
-class MonitorList;
 
 struct SampleWindow : robmikh::common::desktop::DesktopWindow<SampleWindow>
 {
@@ -32,7 +30,6 @@ private:
     void CreateControls(HINSTANCE instance);
     void SetSubTitle(std::wstring const& text);
     winrt::fire_and_forget OnPickerButtonClicked();
-    winrt::fire_and_forget OnSnapshotButtonClicked();
     void StopCapture();
     void OnCaptureItemClosed(winrt::Windows::Graphics::Capture::GraphicsCaptureItem const&, winrt::Windows::Foundation::IInspectable const&);
     void OnCaptureStarted(
@@ -49,8 +46,6 @@ private:
     HWND m_cursorCheckBox = nullptr;
     HWND m_captureExcludeCheckBox = nullptr;
     HWND m_borderRequiredCheckBoxHwnd = nullptr;
-    std::unique_ptr<WindowList> m_windows;
-    std::unique_ptr<MonitorList> m_monitors;
     std::vector<PixelFormatData> m_pixelFormats;
     std::shared_ptr<App> m_app;
     winrt::Windows::Graphics::Capture::GraphicsCaptureItem::Closed_revoker m_itemClosedRevoker;
