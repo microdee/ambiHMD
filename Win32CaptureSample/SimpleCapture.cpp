@@ -116,6 +116,9 @@ void SimpleCapture::OnFrameArrived(winrt::Direct3D11CaptureFramePool const& send
         winrt::com_ptr<ID3D11Texture2D> backBuffer;
         winrt::check_hresult(m_swapChain->GetBuffer(0, winrt::guid_of<ID3D11Texture2D>(), backBuffer.put_void()));
         auto surfaceTexture = GetDXGIInterfaceFromObject<ID3D11Texture2D>(frame.Surface());
+
+        // TODO: detect colors and stuff here
+
         // copy surfaceTexture to backBuffer
         m_d3dContext->CopyResource(backBuffer.get(), surfaceTexture.get());
     }

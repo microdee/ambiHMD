@@ -2,8 +2,6 @@
 #include "pch.h"
 #include "App.h"
 #include "SampleWindow.h"
-#include "WindowList.h"
-#include "MonitorList.h"
 
 namespace winrt
 {
