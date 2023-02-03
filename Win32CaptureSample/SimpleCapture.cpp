@@ -135,10 +135,10 @@ void SimpleCapture::OnFrameArrived(winrt::Direct3D11CaptureFramePool const& send
         device->CreateComputeShader(compiledShaderBytecode, bytecodeLength, nullptr, computeShader.put());
 
         // set the srv as a compute shader input
-        m_d3dContext->CSSetShaderResources(0, 1, srv.getAddressOf());
+        m_d3dContext->CSSetShaderResources(0, 1, srv.get());
 
         // set the backBuffer as UAV for the compute shader
-        m_d3dContext->CSSetUnorderedAccessViews(0, 1, backBuffer.getAddressOf(), nullptr);
+        m_d3dContext->CSSetUnorderedAccessViews(0, 1, backBuffer.get(), nullptr);
 
         // set the compute shader
         m_d3dContext->CSSetShader(computeShader.get(), nullptr, 0);
