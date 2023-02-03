@@ -117,10 +117,42 @@ void SimpleCapture::OnFrameArrived(winrt::Direct3D11CaptureFramePool const& send
         winrt::check_hresult(m_swapChain->GetBuffer(0, winrt::guid_of<ID3D11Texture2D>(), backBuffer.put_void()));
         auto surfaceTexture = GetDXGIInterfaceFromObject<ID3D11Texture2D>(frame.Surface());
 
-        // TODO: detect colors and stuff here
-
         // copy surfaceTexture to backBuffer
         m_d3dContext->CopyResource(backBuffer.get(), surfaceTexture.get());
+
+		// ==================== compute shader ====================
+
+        // get device
+		winrt::com_ptr<ID3D11Device> device;
+		surfaceTexture->GetDevice(device.put());
+
+		// create shader resource view
+		winrt::com_ptr<ID3D11ShaderResourceView> srv;
+		device->CreateShaderResourceView(surfaceTexture.get(), nullptr, srv.put());
+        
+        // create the compute shader
+        winrt::com_ptr<ID3D11ComputeShader> computeShader;
+        device->CreateComputeShader(compiledShaderBytecode, bytecodeLength, nullptr, computeShader.put());
+
+        // set the srv as a compute shader input
+        m_d3dContext->CSSetShaderResources(0, 1, srv.getAddressOf());
+
+        // set the backBuffer as UAV for the compute shader
+        m_d3dContext->CSSetUnorderedAccessViews(0, 1, backBuffer.getAddressOf(), nullptr);
+
+        // set the compute shader
+        m_d3dContext->CSSetShader(computeShader.get(), nullptr, 0);
+
+        // dispatch the compute shader
+        m_d3dContext->Dispatch(numThreadGroupsX, numThreadGroupsY, 1);
+
+        // unbind the srv and backBuffer from the compute shader
+        ID3D11ShaderResourceView* nullSRV = NULL;
+        m_d3dContext->CSSetShaderResources(0, 1, &nullSRV);
+        ID3D11UnorderedAccessView* nullUAV = NULL;
+        m_d3dContext->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
+
+		// ==================== compute shader ====================
     }
 
     DXGI_PRESENT_PARAMETERS presentParameters{};
