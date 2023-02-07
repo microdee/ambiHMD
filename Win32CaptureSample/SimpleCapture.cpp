@@ -148,25 +148,28 @@ void SimpleCapture::OnFrameArrived(winrt::Direct3D11CaptureFramePool const& send
     auto swapChainResizedToFrame = false;
     
     auto frame = sender.TryGetNextFrame();
+    
     swapChainResizedToFrame = TryResizeSwapChain(frame);
 
     winrt::com_ptr<ID3D11Texture2D> backBuffer;
     winrt::check_hresult(m_swapChain->GetBuffer(0, winrt::guid_of<ID3D11Texture2D>(), backBuffer.put_void()));
     auto surfaceTexture = GetDXGIInterfaceFromObject<ID3D11Texture2D>(frame.Surface());
+    
 
     // copy surfaceTexture to backBuffer
     m_d3dContext->CopyResource(backBuffer.get(), surfaceTexture.get());
 
 	// ==================== compute shader ====================
 
-	// m_device is of type winrt::IDirect3DDevice but I need ID3D11Device
-    ID3D11Device* device;
-	m_device.as(device); // TODO: check if this works
+    auto device = GetDXGIInterfaceFromObject<ID3D11Texture2D>(m_device);
+    winrt::com_ptr<ID3D11ShaderResourceView> surface_srv;
+
+    winrt::check_hresult(device->CreateShaderResourceView(surfaceTexture, nullptr, srv_desc.put()));
 
     // Compile shader
     // TODO: I probably only want to do this once?
-    ID3DBlob* csBlob = nullptr;
-	HRESULT hr = CompileComputeShader(L"ExampleCompute.hlsl", "CSMain", device, &csBlob);
+    winrt::com_ptr<ID3DBlob> csBlob {};
+	winrt::check_hresult(CompileComputeShader(L"ExampleCompute.hlsl", "CSMain", device.get(), csBlob.put()));
 
     // Create shader
     //https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11device-createcomputeshader
@@ -178,16 +181,28 @@ void SimpleCapture::OnFrameArrived(winrt::Direct3D11CaptureFramePool const& send
         [out, optional] ID3D11ComputeShader **ppComputeShader
     );
     */
-    ID3D11ComputeShader* computeShader = nullptr;
-    hr = device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, &computeShader);
+    winrt::com_ptr<ID3D11ComputeShader> computeShader {};
+    winrt::check_hresult(device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, computeShader.put()));
 
-    csBlob->Release();
+    m_d3dContext->CSSetShader(computeShader.get(), nullptr, 0);
+    const ID3D11ShaderResourceView* temp = surface_srv.get();
+    m_d3dContext->CSSetShaderResources(0, 1, &temp);
+
+    // TODO: UAV texture
+
+    const ID3D11UnorderedAccessView* temp_uav = target_uav.get();
+    m_d3dContext->CSSetUnorderedAccessView(0, 1, &temp_uav);
+
+    m_d3dContext->Dispatch()
+
     
+
 	// TODO: give compute shader access to backBuffer right?
     
-	// TODO: actually run the shader
     
-    computeShader->Release();
+	// TODO: actually run the shader
+
+    
     
     
 	// ==================== compute shader ====================
